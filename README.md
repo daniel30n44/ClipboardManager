@@ -25,7 +25,7 @@ A macOS menu bar clipboard history manager — auto-records text and images you 
 
 ```bash
 # 1. 克隆仓库 / Clone
-git clone https://github.com/daniel30n44/-.git
+git clone https://github.com/daniel30n44/ClipboardManager.git
 cd 历史粘贴板
 
 # 2. Xcode 打开项目 / Open in Xcode
