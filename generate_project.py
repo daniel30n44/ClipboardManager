@@ -13,7 +13,7 @@ def hex24():
 PID      = hex24()  # Project
 MGID     = hex24()  # Main Group
 PGID     = hex24()  # Products Group
-SGID     = hex24()  # Source root group (历史粘贴板)
+SGID     = hex24()  # Source root group (ClipboardManager)
 MODG     = hex24()  # Models group
 SVCG     = hex24()  # Services group
 VWG      = hex24()  # Views group
@@ -48,12 +48,13 @@ src = {
     "Views/Settings/SettingsView.swift": hex24(),
     "Utils/Color+Hex.swift": hex24(),
     "Utils/DateFormatter+Extensions.swift": hex24(),
+    "Utils/LocalizationService.swift": hex24(),
 }
 
 res = {
     "Assets.xcassets": hex24(),
     "Info.plist": hex24(),
-    "历史粘贴板.entitlements": hex24(),
+    "ClipboardManager.entitlements": hex24(),
 }
 
 # Build file refs
@@ -115,7 +116,7 @@ lines.append("/* End PBXBuildFile section */")
 # -- PBXFileReference --
 lines.append("/* Begin PBXFileReference section */")
 # 产品
-lines.append(f'\t\t{PREF} /* 历史粘贴板.app */ = {{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "历史粘贴板.app"; sourceTree = BUILT_PRODUCTS_DIR; }};')
+lines.append(f'\t\t{PREF} /* ClipboardManager.app */ = {{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ClipboardManager.app"; sourceTree = BUILT_PRODUCTS_DIR; }};')
 # 源文件 — path 只需写文件名（因为已在有 path 的 group 内）
 for key, fid in src.items():
     fname = os.path.basename(key)
@@ -123,7 +124,7 @@ for key, fid in src.items():
 # 资源
 lines.append(f'\t\t{res["Assets.xcassets"]} /* Assets.xcassets */ = {{isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; }};')
 lines.append(file_ref(res["Info.plist"], "Info.plist", ftype="text.plist.xml"))
-lines.append(file_ref(res["历史粘贴板.entitlements"], "历史粘贴板.entitlements", ftype="text.plist.entitlements"))
+lines.append(file_ref(res["ClipboardManager.entitlements"], "ClipboardManager.entitlements", ftype="text.plist.entitlements"))
 lines.append("/* End PBXFileReference section */")
 
 # -- PBXGroup --
@@ -146,20 +147,21 @@ lines.append(group(VWG, "Views", [MBG, MWG, SETG], path="Views"))
 lines.append(group(UTG, "Utils", [
     src["Utils/Color+Hex.swift"],
     src["Utils/DateFormatter+Extensions.swift"],
+    src["Utils/LocalizationService.swift"],
 ], path="Utils"))
-lines.append(group(ASG, "Assets.xcassets", [res["Assets.xcassets"]], path="Assets.xcassets"))
-lines.append(group(SGID, "历史粘贴板", [
+lines.append(group(ASG, "Assets.xcassets", [res["Assets.xcassets"]]))
+lines.append(group(SGID, "ClipboardManager", [
     src["HistoryClipboardApp.swift"],
     MODG, SVCG, VWG, UTG, ASG,
     res["Info.plist"],
-    res["历史粘贴板.entitlements"],
-], path="历史粘贴板"))
+    res["ClipboardManager.entitlements"],
+], path="ClipboardManager"))
 lines.append(group(MGID, "", [SGID, PGID]))
 lines.append("/* End PBXGroup section */")
 
 # -- PBXNativeTarget --
 lines.append("/* Begin PBXNativeTarget section */")
-lines.append(f'\t\t{TID} /* 历史粘贴板 */ = {{isa = PBXNativeTarget; buildConfigurationList = {TCL}; buildPhases = ({SPH}, {FPH}, {RPH}); buildRules = (); dependencies = (); name = "历史粘贴板"; productName = "历史粘贴板"; productReference = {PREF}; productType = "com.apple.product-type.application"; }};')
+lines.append(f'\t\t{TID} /* ClipboardManager */ = {{isa = PBXNativeTarget; buildConfigurationList = {TCL}; buildPhases = ({SPH}, {FPH}, {RPH}); buildRules = (); dependencies = (); name = "ClipboardManager"; productName = "ClipboardManager"; productReference = {PREF}; productType = "com.apple.product-type.application"; }};')
 lines.append("/* End PBXNativeTarget section */")
 
 # -- PBXProject --
@@ -228,14 +230,14 @@ lines.append(build_config(PRC, "Release", {
 
 target_settings = {
     "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
-    "CODE_SIGN_ENTITLEMENTS": '"历史粘贴板/历史粘贴板.entitlements"',
+    "CODE_SIGN_ENTITLEMENTS": '"ClipboardManager/ClipboardManager.entitlements"',
     "CODE_SIGN_STYLE": "Automatic",
     "COMBINE_HIDPI_IMAGES": "YES",
     "CURRENT_PROJECT_VERSION": "1",
     "DEVELOPMENT_TEAM": '""',
     "ENABLE_HARDENED_RUNTIME": "YES",
     "GENERATE_INFOPLIST_FILE": "YES",
-    "INFOPLIST_FILE": '"历史粘贴板/Info.plist"',
+    "INFOPLIST_FILE": '"ClipboardManager/Info.plist"',
     "INFOPLIST_KEY_LSApplicationCategoryType": '"public.app-category.utilities"',
     "INFOPLIST_KEY_NSHumanReadableCopyright": '"Copyright © 2026. All rights reserved."',
     "LD_RUNPATH_SEARCH_PATHS": '("$(inherited)", "@executable_path/../Frameworks")',
@@ -275,21 +277,21 @@ content = f"""// !$*UTF8*$!
 }}
 """
 
-out = os.path.join(os.path.dirname(__file__), "历史粘贴板.xcodeproj", "project.pbxproj")
+out = os.path.join(os.path.dirname(__file__), "ClipboardManager.xcodeproj", "project.pbxproj")
 with open(out, "w", encoding="utf-8") as f:
     f.write(content)
 
 # 同时生成 scheme 文件
-scheme_dir = os.path.join(os.path.dirname(__file__), "历史粘贴板.xcodeproj", "xcshareddata", "xcschemes")
+scheme_dir = os.path.join(os.path.dirname(__file__), "ClipboardManager.xcodeproj", "xcshareddata", "xcschemes")
 os.makedirs(scheme_dir, exist_ok=True)
-scheme_path = os.path.join(scheme_dir, "历史粘贴板.xcscheme")
+scheme_path = os.path.join(scheme_dir, "ClipboardManager.xcscheme")
 
 scheme_content = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Scheme LastUpgradeVersion = "2600" version = "1.3">
    <BuildAction parallelizeBuildables = "YES" buildImplicitDependencies = "YES">
       <BuildActionEntries>
          <BuildActionEntry buildForTesting = "YES" buildForRunning = "YES" buildForProfiling = "YES" buildForArchiving = "YES" buildForAnalyzing = "YES">
-            <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "{TID}" BuildableName = "历史粘贴板.app" BlueprintName = "历史粘贴板" ReferencedContainer = "container:历史粘贴板.xcodeproj">
+            <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "{TID}" BuildableName = "ClipboardManager.app" BlueprintName = "ClipboardManager" ReferencedContainer = "container:ClipboardManager.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -300,13 +302,13 @@ scheme_content = f'''<?xml version="1.0" encoding="UTF-8"?>
    </TestAction>
    <LaunchAction buildConfiguration = "Debug" selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB" launchStyle = "0" useCustomWorkingDirectory = "NO" ignoresPersistentStateOnLaunch = "NO" debugDocumentVersioning = "YES" debugServiceExtension = "internal" allowLocationSimulation = "YES">
       <BuildableProductRunnable runnableDebuggingMode = "0">
-         <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "{TID}" BuildableName = "历史粘贴板.app" BlueprintName = "历史粘贴板" ReferencedContainer = "container:历史粘贴板.xcodeproj">
+         <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "{TID}" BuildableName = "ClipboardManager.app" BlueprintName = "ClipboardManager" ReferencedContainer = "container:ClipboardManager.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
    <ProfileAction buildConfiguration = "Release" shouldUseLaunchSchemeArgsEnv = "YES" savedToolIdentifier = "" useCustomWorkingDirectory = "NO" debugDocumentVersioning = "YES">
       <BuildableProductRunnable runnableDebuggingMode = "0">
-         <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "{TID}" BuildableName = "历史粘贴板.app" BlueprintName = "历史粘贴板" ReferencedContainer = "container:历史粘贴板.xcodeproj">
+         <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "{TID}" BuildableName = "ClipboardManager.app" BlueprintName = "ClipboardManager" ReferencedContainer = "container:ClipboardManager.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

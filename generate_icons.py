@@ -79,7 +79,7 @@ def make_icon(size):
 
 # 输出目录
 icon_dir = os.path.join(os.path.dirname(__file__),
-    "历史粘贴板", "Assets.xcassets", "AppIcon.appiconset")
+    "ClipboardManager", "Assets.xcassets", "AppIcon.appiconset")
 
 # 需要的尺寸 (文件名, 实际像素)
 sizes = {

@@ -1,4 +1,4 @@
-# 技术规范 — 历史粘贴板
+# 技术规范 — ClipboardManager
 
 ## 技术栈
 
@@ -15,7 +15,7 @@
 ## 项目结构
 
 ```
-历史粘贴板/
+ClipboardManager/
 ├── CLAUDE.md                           # AI 开发指引
 ├── docs/                               # 项目文档
 │   ├── requirements.md                 # 需求文档
@@ -23,12 +23,12 @@
 │   ├── design-spec.md                  # 设计规范
 │   ├── architecture.md                 # 架构设计
 │   └── execution-plan.md               # 执行计划
-├── 开发日志/                            # 每日开发记录
-├── 历史粘贴板.xcodeproj/                # Xcode 项目
-└── 历史粘贴板/                          # 源代码
+├── dev-logs/                            # 每日开发记录
+├── ClipboardManager.xcodeproj/                # Xcode 项目
+└── ClipboardManager/                          # 源代码
     ├── HistoryClipboardApp.swift        # App 入口
     ├── Info.plist
-    ├── 历史粘贴板.entitlements
+    ├── ClipboardManager.entitlements
     ├── Assets.xcassets/
     ├── Models/
     │   └── ClipboardItem.swift          # 数据模型

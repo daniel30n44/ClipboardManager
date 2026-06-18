@@ -3,7 +3,7 @@
    <BuildAction parallelizeBuildables = "YES" buildImplicitDependencies = "YES">
       <BuildActionEntries>
          <BuildActionEntry buildForTesting = "YES" buildForRunning = "YES" buildForProfiling = "YES" buildForArchiving = "YES" buildForAnalyzing = "YES">
-            <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "D4DB07F6A20B400CAF2FF641" BuildableName = "历史粘贴板.app" BlueprintName = "历史粘贴板" ReferencedContainer = "container:历史粘贴板.xcodeproj">
+            <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "685986BD9DAB4B7382836625" BuildableName = "ClipboardManager.app" BlueprintName = "ClipboardManager" ReferencedContainer = "container:ClipboardManager.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -14,13 +14,13 @@
    </TestAction>
    <LaunchAction buildConfiguration = "Debug" selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB" launchStyle = "0" useCustomWorkingDirectory = "NO" ignoresPersistentStateOnLaunch = "NO" debugDocumentVersioning = "YES" debugServiceExtension = "internal" allowLocationSimulation = "YES">
       <BuildableProductRunnable runnableDebuggingMode = "0">
-         <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "D4DB07F6A20B400CAF2FF641" BuildableName = "历史粘贴板.app" BlueprintName = "历史粘贴板" ReferencedContainer = "container:历史粘贴板.xcodeproj">
+         <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "685986BD9DAB4B7382836625" BuildableName = "ClipboardManager.app" BlueprintName = "ClipboardManager" ReferencedContainer = "container:ClipboardManager.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
    <ProfileAction buildConfiguration = "Release" shouldUseLaunchSchemeArgsEnv = "YES" savedToolIdentifier = "" useCustomWorkingDirectory = "NO" debugDocumentVersioning = "YES">
       <BuildableProductRunnable runnableDebuggingMode = "0">
-         <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "D4DB07F6A20B400CAF2FF641" BuildableName = "历史粘贴板.app" BlueprintName = "历史粘贴板" ReferencedContainer = "container:历史粘贴板.xcodeproj">
+         <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "685986BD9DAB4B7382836625" BuildableName = "ClipboardManager.app" BlueprintName = "ClipboardManager" ReferencedContainer = "container:ClipboardManager.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

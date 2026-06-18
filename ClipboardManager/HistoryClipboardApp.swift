@@ -47,25 +47,57 @@ private func pidFilePath() -> URL {
     return appSupport.appendingPathComponent("running.pid")
 }
 
-/// 终止旧实例（通过 PID 文件），然后写入当前 PID
+/// 终止所有旧实例，确保只有一个菜单栏图标
 private func killOldInstanceAndSavePID() {
     let fileURL = pidFilePath()
     let myPid = ProcessInfo.processInfo.processIdentifier
 
-    // 读取旧 PID 并 kill
+    // ---- 方法 1：通过 NSRunningApplication 精确查找同 Bundle ID 的旧实例 ----
+    let myBundleId = Bundle.main.bundleIdentifier ?? "com.historyclipboard.app"
+    let runningApps = NSWorkspace.shared.runningApplications
+    let oldInstances = runningApps.filter {
+        $0.bundleIdentifier == myBundleId && $0.processIdentifier != myPid
+    }
+
+    if !oldInstances.isEmpty {
+        print("⚠️ 发现 \(oldInstances.count) 个旧实例，准备终止")
+        for app in oldInstances {
+            print("   终止 PID: \(app.processIdentifier)")
+            app.terminate()
+        }
+        // 等待旧实例退出
+        var waited: TimeInterval = 0
+        let deadline = Date().addingTimeInterval(3.0)
+        while Date() < deadline {
+            let stillAlive = NSWorkspace.shared.runningApplications.filter {
+                $0.bundleIdentifier == myBundleId && $0.processIdentifier != myPid
+            }
+            if stillAlive.isEmpty { break }
+            usleep(200_000)
+            waited += 0.2
+        }
+        // 超时未退出的，强制 kill
+        let stubborn = NSWorkspace.shared.runningApplications.filter {
+            $0.bundleIdentifier == myBundleId && $0.processIdentifier != myPid
+        }
+        for app in stubborn {
+            print("💀 旧实例 PID \(app.processIdentifier) 未响应终止，发送 SIGKILL")
+            kill(app.processIdentifier, SIGKILL)
+        }
+        usleep(300_000)
+        print("✅ 旧实例已全部终止（耗时 \(String(format: "%.1f", waited))s）")
+    }
+
+    // ---- 方法 2：通过 PID 文件兜底（防止 Bundle ID 查不到的场景）----
     if let oldPIDStr = try? String(contentsOf: fileURL, encoding: .utf8),
        let oldPID = pid_t(oldPIDStr.trimmingCharacters(in: .whitespacesAndNewlines)),
        oldPID != myPid {
-        print("⚠️ 发现旧实例 PID: \(oldPID)，发送 SIGTERM")
-        kill(oldPID, SIGTERM)
-        usleep(300_000)
-        // 如果还没死，强制 kill
+        // 确认该进程还活着且不是自己
         if kill(oldPID, 0) == 0 {
-            print("💀 SIGTERM 未生效，发送 SIGKILL")
+            print("💀 PID 文件中发现残留进程 \(oldPID)，发送 SIGKILL")
             kill(oldPID, SIGKILL)
             usleep(200_000)
         }
-        print("✅ 旧实例已终止")
     }
 
     // 写入当前 PID
@@ -81,6 +113,7 @@ struct HistoryClipboardApp: App {
 
     @StateObject private var dataStore = DataStore()
     @StateObject private var clipboardMonitor: ClipboardMonitor
+    @StateObject private var localizationService = LocalizationService()
 
     init() {
         // ⚠️ 必须在最前面：调试器脱离
@@ -118,10 +151,24 @@ struct HistoryClipboardApp: App {
     var body: some Scene {
         MenuBarExtra {
             MenuBarView(dataStore: dataStore)
+                .environmentObject(localizationService)
         } label: {
             Image(systemName: "clipboard")
                 .font(.system(size: 14, weight: .medium))
         }
         .menuBarExtraStyle(.window)
+
+        Window("历史粘贴板", id: "main") {
+            MainWindowView(dataStore: dataStore)
+                .environmentObject(localizationService)
+        }
+        .windowResizability(.contentSize)
+        .defaultSize(width: 480, height: 600)
+
+        Settings {
+            SettingsView(dataStore: dataStore)
+                .environmentObject(localizationService)
+        }
+        .windowResizability(.contentSize)
     }
 }

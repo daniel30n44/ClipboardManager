@@ -1,15 +1,15 @@
 #!/bin/bash
 # =========================================
-# 历史粘贴板 — 编译并启动独立实例
+# ClipboardManager — 编译并启动独立实例
 # 不依赖 Xcode 调试器，关闭 Xcode 不会退出
 # =========================================
 
 set -e
 cd "$(dirname "$0")"
 
-PROJECT="历史粘贴板.xcodeproj"
-SCHEME="历史粘贴板"
-APP_NAME="历史粘贴板.app"
+PROJECT="ClipboardManager.xcodeproj"
+SCHEME="ClipboardManager"
+APP_NAME="ClipboardManager.app"
 INSTALL_DIR="$HOME/Applications"
 
 echo "🔨 编译 Release 版本..."

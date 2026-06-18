@@ -1,4 +1,4 @@
-# 执行计划 — 历史粘贴板
+# 执行计划 — ClipboardManager
 
 ## 开发阶段
 
@@ -65,6 +65,6 @@
 | Utils/DateFormatter+Extensions.swift | ✅ |
 | HistoryClipboardApp.swift | ✅ |
 | Info.plist | ✅ |
-| 历史粘贴板.entitlements | ✅ |
+| ClipboardManager.entitlements | ✅ |
 | Assets.xcassets/ | ✅ |
 | project.pbxproj | ❌ 待创建 |

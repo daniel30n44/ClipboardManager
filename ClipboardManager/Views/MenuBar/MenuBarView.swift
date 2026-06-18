@@ -12,6 +12,7 @@ enum PanelView: Equatable {
 
 struct MenuBarView: View {
     @ObservedObject var dataStore: DataStore
+    @EnvironmentObject var localization: LocalizationService
     @Environment(\.colorScheme) private var colorScheme
 
     @State private var searchText: String = ""
@@ -72,7 +73,7 @@ struct MenuBarView: View {
         switch currentPanel {
         case .home:        return (410, 500)
         case .fullHistory: return (410, 500)
-        case .settings:    return (420, 480)
+        case .settings:    return (420, 520)
         }
     }
 
@@ -100,6 +101,17 @@ struct MenuBarView: View {
         }
         .onAppear {
             scheduleResize(width: panelSize.width, height: panelSize.height)
+        }
+        // 每次打开面板时，强制回到首页
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { notification in
+            guard let window = notification.object as? NSWindow,
+                  window == popupWindow else { return }
+            if currentPanel != .home {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    currentPanel = .home
+                }
+            }
+            searchText = ""
         }
     }
 
@@ -183,7 +195,7 @@ struct MenuBarView: View {
                 .foregroundColor(.primary.opacity(0.8))
 
             if currentPanel == .home {
-                Text("· 3 天内")
+                Text(localization.loc("nav.recent_3days"))
                     .font(.system(size: 11, weight: .regular))
                     .foregroundColor(.secondary.opacity(0.5))
             }
@@ -214,7 +226,7 @@ struct MenuBarView: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .help("设置")
+                .help(localization.loc("settings.title"))
             }
         }
         .padding(.horizontal, 14)
@@ -223,9 +235,9 @@ struct MenuBarView: View {
 
     private var panelTitle: String {
         switch currentPanel {
-        case .home:        return "历史粘贴板"
-        case .fullHistory: return "全部记录"
-        case .settings:    return "设置"
+        case .home:        return localization.loc("nav.home")
+        case .fullHistory: return localization.loc("nav.all_records")
+        case .settings:    return localization.loc("settings.title")
         }
     }
 
@@ -242,7 +254,7 @@ struct MenuBarView: View {
     @ViewBuilder
     private var searchBarAndDivider: some View {
         if currentPanel != .settings {
-            SearchBar(text: $searchText)
+            SearchBar(text: $searchText, placeholder: localization.loc("nav.search_placeholder"))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
             glassDivider
@@ -317,7 +329,7 @@ struct MenuBarView: View {
                 LazyVStack(spacing: 8) {
                     if !searchText.trimmingCharacters(in: .whitespaces).isEmpty {
                         HStack {
-                            Text("找到 \(filteredItems.count) 条匹配")
+                            Text(localization.loc("main.search_results", filteredItems.count))
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary.opacity(0.6))
                             Spacer()
@@ -342,6 +354,7 @@ struct MenuBarView: View {
                                 withAnimation { dataStore.delete(item) }
                             }
                         )
+                        .environmentObject(localization)
                     }
                 }
                 .padding(.horizontal, 10)
@@ -368,14 +381,16 @@ struct MenuBarView: View {
             }
             .shadow(color: .black.opacity(colorScheme == .dark ? 0 : 0.03), radius: 6, y: 3)
 
-            Text(searchText.isEmpty ? "暂无复制记录" : "无匹配结果")
+            Text(searchText.isEmpty
+                ? localization.loc("empty.no_records")
+                : localization.loc("empty.no_matches"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.secondary.opacity(0.7))
                 .padding(.top, 6)
 
             Text(searchText.isEmpty
-                ? "⌘C 复制的文字和图片会自动出现在这里"
-                : "尝试其他关键词搜索")
+                ? localization.loc("empty.hint")
+                : localization.loc("empty.try_other"))
                 .font(.system(size: 11))
                 .foregroundColor(.secondary.opacity(0.5))
             Spacer()
@@ -389,11 +404,28 @@ struct MenuBarView: View {
     private var settingsContentView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                // 语言选择（Picker 形式，支持任意数量语言）
+                settingsSection(
+                    icon: "globe",
+                    title: localization.loc("settings.language.title"),
+                    description: localization.loc("settings.language.description")
+                ) {
+                    Picker("", selection: $localization.currentLanguage) {
+                        ForEach(AppLanguage.allCases, id: \.self) { lang in
+                            Text(lang.displayName).tag(lang)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                }
+
+                glassDivider
+
                 // 保留天数
                 settingsSection(
                     icon: "clock.arrow.circlepath",
-                    title: "历史保留时长",
-                    description: "超过设定天数的记录会自动清理，置顶条目不受影响"
+                    title: localization.loc("settings.retention.title"),
+                    description: localization.loc("settings.retention.description")
                 ) {
                     HStack(spacing: 8) {
                         ForEach([1, 3, 5], id: \.self) { days in
@@ -401,7 +433,7 @@ struct MenuBarView: View {
                                 selectedDays = days
                                 dataStore.retentionDays = days
                             }) {
-                                Text("\(days) 天")
+                                Text(localization.loc("settings.retention.\(days)day"))
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundColor(
                                         selectedDays == days
@@ -437,11 +469,13 @@ struct MenuBarView: View {
                 // 开机自启
                 settingsSection(
                     icon: "power",
-                    title: "开机自动启动",
-                    description: "登录系统时自动在菜单栏运行"
+                    title: localization.loc("settings.launch.title"),
+                    description: localization.loc("settings.launch.description")
                 ) {
                     HStack {
-                        Text(launchAtLogin ? "已开启" : "已关闭")
+                        Text(launchAtLogin
+                            ? localization.loc("settings.launch.enabled")
+                            : localization.loc("settings.launch.disabled"))
                             .font(.system(size: 13))
                             .foregroundColor(
                                 launchAtLogin
@@ -461,12 +495,24 @@ struct MenuBarView: View {
                 glassDivider
 
                 // 存储信息
-                settingsSection(icon: "info.circle", title: "存储信息", description: nil) {
+                settingsSection(icon: "info.circle", title: localization.loc("settings.storage.title"), description: nil) {
                     VStack(alignment: .leading, spacing: 6) {
-                        InfoRow(label: "总记录数", value: "\(dataStore.items.count) 条")
-                        InfoRow(label: "文字记录", value: "\(dataStore.items.filter { $0.type == .text }.count) 条")
-                        InfoRow(label: "图片记录", value: "\(dataStore.items.filter { $0.type == .image }.count) 条")
-                        InfoRow(label: "置顶条目", value: "\(dataStore.items.filter { $0.isPinned }.count) 条")
+                        InfoRow(
+                            label: localization.loc("settings.storage.total"),
+                            value: localization.loc("settings.storage.unit", dataStore.items.count)
+                        )
+                        InfoRow(
+                            label: localization.loc("settings.storage.text"),
+                            value: localization.loc("settings.storage.unit", dataStore.items.filter { $0.type == .text }.count)
+                        )
+                        InfoRow(
+                            label: localization.loc("settings.storage.image"),
+                            value: localization.loc("settings.storage.unit", dataStore.items.filter { $0.type == .image }.count)
+                        )
+                        InfoRow(
+                            label: localization.loc("settings.storage.pinned"),
+                            value: localization.loc("settings.storage.unit", dataStore.items.filter { $0.isPinned }.count)
+                        )
                     }
                 }
             }
@@ -507,14 +553,14 @@ struct MenuBarView: View {
     private var footerView: some View {
         if currentPanel != .settings {
             HStack(spacing: 0) {
-                Text("\(dataStore.retentionDays) 天保留")
+                Text(localization.loc("footer.retention", dataStore.retentionDays))
                     .font(.system(size: 10))
                     .foregroundColor(.secondary.opacity(0.6))
 
                 Spacer()
 
                 if !searchText.trimmingCharacters(in: .whitespaces).isEmpty {
-                    Text("共 \(dataStore.items.count) 条")
+                    Text(localization.loc("footer.total", dataStore.items.count))
                         .font(.system(size: 10))
                         .foregroundColor(.secondary.opacity(0.6))
                 } else {
@@ -526,8 +572,8 @@ struct MenuBarView: View {
                         }
                     }) {
                         Text(currentPanel == .fullHistory
-                            ? "返回主页"
-                            : "查看全部")
+                            ? localization.loc("nav.back_home")
+                            : localization.loc("nav.view_all"))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(Color(hex: "5BA4C9").opacity(0.8))
                     }
@@ -535,7 +581,7 @@ struct MenuBarView: View {
 
                     Spacer().frame(width: 8)
 
-                    Text("\(dataStore.items.count) 条")
+                    Text(localization.loc("footer.total", dataStore.items.count))
                         .font(.system(size: 10))
                         .foregroundColor(.secondary.opacity(0.6))
                 }
@@ -663,6 +709,7 @@ struct MenuBarItemRow: View {
     let onTogglePin: () -> Void
     let onDelete: () -> Void
 
+    @EnvironmentObject var localization: LocalizationService
     @Environment(\.colorScheme) private var colorScheme
     @State private var isHovered = false
 
@@ -754,6 +801,9 @@ struct MenuBarItemRow: View {
                     }
                     .buttonStyle(.plain)
                     .opacity(isHovered ? 1 : 0)
+                    .help(item.isPinned
+                        ? localization.loc("card.unpin")
+                        : localization.loc("card.pin"))
 
                     // 删除按钮（始终占位，仅淡入淡出）
                     Button(action: onDelete) {
@@ -773,6 +823,7 @@ struct MenuBarItemRow: View {
                     }
                     .buttonStyle(.plain)
                     .opacity(isHovered ? 1 : 0)
+                    .help(localization.loc("card.delete"))
 
                     // 粘贴提示箭头（始终占位）
                     Image(systemName: "arrow.turn.down.left")

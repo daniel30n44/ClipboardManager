@@ -1,8 +1,8 @@
-# CLAUDE.md — 历史粘贴板 项目开发指引
+# CLAUDE.md — ClipboardManager 项目开发指引
 
 ## 项目简介
 
-这是一个运行在 macOS (14.0+) 上的历史粘贴板应用，使用 Swift + SwiftUI 开发。自动记录用户的剪贴板历史（文字和图片），支持查看、搜索、粘贴、置顶和设置保留时长。
+这是一个运行在 macOS (14.0+) 上的剪贴板历史管理应用，使用 Swift + SwiftUI 开发。自动记录用户的剪贴板历史（文字和图片），支持查看、搜索、粘贴、置顶和设置保留时长。
 
 ---
 
@@ -28,7 +28,7 @@
 
 ## 开发日志
 
-每天的开发记录放在 `开发日志/` 目录，文件命名格式：`YYYY-MM-DD.md`。
+每天的开发记录放在 `dev-logs/` 目录，文件命名格式：`YYYY-MM-DD.md`。
 
 每次开发会话结束后，更新当天日志：
 - ✅ 完成事项
@@ -41,7 +41,7 @@
 ## 项目结构速览
 
 ```
-历史粘贴板/
+ClipboardManager/
 ├── CLAUDE.md                        ← 你在这里
 ├── docs/                            ← 项目文档（不可修改）
 │   ├── requirements.md
@@ -49,12 +49,12 @@
 │   ├── design-spec.md
 │   ├── architecture.md
 │   └── execution-plan.md
-├── 开发日志/                         ← 每日记录
-├── 历史粘贴板.xcodeproj/             ← Xcode 项目
-└── 历史粘贴板/                       ← 源代码
+├── dev-logs/                         ← 每日记录
+├── ClipboardManager.xcodeproj/             ← Xcode 项目
+└── ClipboardManager/                       ← 源代码
     ├── HistoryClipboardApp.swift
     ├── Info.plist
-    ├── 历史粘贴板.entitlements
+    ├── ClipboardManager.entitlements
     ├── Assets.xcassets/
     ├── Models/
     ├── Services/
@@ -66,14 +66,14 @@
 
 ```bash
 # 编译
-xcodebuild -project "历史粘贴板.xcodeproj" -scheme "历史粘贴板" build
+xcodebuild -project "ClipboardManager.xcodeproj" -scheme "ClipboardManager" build
 
 # 运行（从命令行）
-open "历史粘贴板.xcodeproj"
+open "ClipboardManager.xcodeproj"
 # 然后在 Xcode 中 Cmd+R
 
 # 或直接运行编译产物
-open build/Release/历史粘贴板.app
+open build/Release/ClipboardManager.app
 ```
 
 ## 代码规范

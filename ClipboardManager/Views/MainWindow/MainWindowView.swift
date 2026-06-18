@@ -4,6 +4,7 @@ import SwiftUI
 
 struct MainWindowView: View {
     @ObservedObject var dataStore: DataStore
+    @EnvironmentObject var localization: LocalizationService
     @Environment(\.colorScheme) private var colorScheme
     @State private var searchText: String = ""
     @State private var selectedItem: ClipboardItem?
@@ -72,15 +73,15 @@ struct MainWindowView: View {
                     .fill(.regularMaterial)
             }
         )
-        .alert("确认删除", isPresented: $showDeleteAlert) {
-            Button("取消", role: .cancel) {}
-            Button("删除", role: .destructive) {
+        .alert(localization.loc("main.delete_alert.title"), isPresented: $showDeleteAlert) {
+            Button(localization.loc("main.delete_alert.cancel"), role: .cancel) {}
+            Button(localization.loc("main.delete_alert.confirm"), role: .destructive) {
                 if let item = itemToDelete {
                     withAnimation { dataStore.delete(item) }
                 }
             }
         } message: {
-            Text("确定要删除这条记录吗？此操作不可撤销。")
+            Text(localization.loc("main.delete_alert.message"))
         }
     }
 
@@ -102,10 +103,10 @@ struct MainWindowView: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("历史记录")
+                Text(localization.loc("main.title"))
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.primary.opacity(0.85))
-                Text("最近 3 天的复制历史")
+                Text(localization.loc("main.subtitle"))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary.opacity(0.6))
             }
@@ -163,7 +164,7 @@ struct MainWindowView: View {
     // MARK: - 搜索栏
 
     private var searchBarView: some View {
-        SearchBar(text: $searchText)
+        SearchBar(text: $searchText, placeholder: localization.loc("nav.search_placeholder"))
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
     }
@@ -186,13 +187,15 @@ struct MainWindowView: View {
             }
             .shadow(color: .black.opacity(colorScheme == .dark ? 0 : 0.03), radius: 8, y: 4)
 
-            Text(searchText.isEmpty ? "暂无复制记录" : "未找到匹配结果")
+            Text(searchText.isEmpty
+                ? localization.loc("main.empty.title")
+                : localization.loc("main.empty.search_title"))
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.secondary.opacity(0.6))
 
             Text(searchText.isEmpty
-                ? "近 3 天内复制的文字和图片会出现在这里"
-                : "换个关键词试试")
+                ? localization.loc("main.empty.subtitle")
+                : localization.loc("main.empty.search_subtitle"))
                 .font(.system(size: 12))
                 .foregroundColor(.secondary.opacity(0.4))
 
@@ -209,7 +212,7 @@ struct MainWindowView: View {
                 // 结果提示
                 if !searchText.trimmingCharacters(in: .whitespaces).isEmpty {
                     HStack {
-                        Text("找到 \(filteredItems.count) 条匹配")
+                        Text(localization.loc("main.search_results", filteredItems.count))
                             .font(.system(size: 11))
                             .foregroundColor(.secondary.opacity(0.6))
                         Spacer()
@@ -233,6 +236,7 @@ struct MainWindowView: View {
                             showDeleteAlert = true
                         }
                     )
+                    .environmentObject(localization)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }

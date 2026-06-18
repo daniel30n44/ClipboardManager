@@ -4,6 +4,7 @@ import SwiftUI
 
 struct SearchBar: View {
     @Binding var text: String
+    var placeholder: String = "搜索历史记录..."
     @FocusState private var isFocused: Bool
     @Environment(\.colorScheme) private var colorScheme
 
@@ -13,7 +14,7 @@ struct SearchBar: View {
                 .foregroundColor(.secondary.opacity(isFocused ? 0.7 : 0.45))
                 .font(.system(size: 14, weight: .light))
 
-            TextField("搜索历史记录...", text: $text)
+            TextField(placeholder, text: $text)
                 .textFieldStyle(.plain)
                 .font(.system(size: 13))
                 .focused($isFocused)

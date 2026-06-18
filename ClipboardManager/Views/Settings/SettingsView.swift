@@ -4,6 +4,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var dataStore: DataStore
+    @EnvironmentObject var localization: LocalizationService
     @Environment(\.colorScheme) private var colorScheme
     @State private var selectedDays: Int
     @State private var launchAtLogin: Bool
@@ -33,7 +34,7 @@ struct SettingsView: View {
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(Color(hex: "5BA4C9"))
                 }
-                Text("设置")
+                Text(localization.loc("settings.title"))
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.primary.opacity(0.85))
             }
@@ -45,11 +46,28 @@ struct SettingsView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    // 语言选择（Picker 形式，支持任意数量语言）
+                    settingsSection(
+                        icon: "globe",
+                        title: localization.loc("settings.language.title"),
+                        description: localization.loc("settings.language.description")
+                    ) {
+                        Picker("", selection: $localization.currentLanguage) {
+                            ForEach(AppLanguage.allCases, id: \.self) { lang in
+                                Text(lang.displayName).tag(lang)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                    }
+
+                    glassDivider
+
                     // 保留天数
                     settingsSection(
                         icon: "clock.arrow.circlepath",
-                        title: "历史保留时长",
-                        description: "超过设定天数的记录会自动清理，置顶条目不受影响"
+                        title: localization.loc("settings.retention.title"),
+                        description: localization.loc("settings.retention.description")
                     ) {
                         HStack(spacing: 8) {
                             ForEach([1, 3, 5], id: \.self) { days in
@@ -57,7 +75,7 @@ struct SettingsView: View {
                                     selectedDays = days
                                     dataStore.retentionDays = days
                                 }) {
-                                    Text("\(days) 天")
+                                    Text(localization.loc("settings.retention.\(days)day"))
                                         .font(.system(size: 13, weight: .medium))
                                         .foregroundColor(
                                             selectedDays == days
@@ -93,11 +111,13 @@ struct SettingsView: View {
                     // 开机自启
                     settingsSection(
                         icon: "power",
-                        title: "开机自动启动",
-                        description: "登录系统时自动在菜单栏运行"
+                        title: localization.loc("settings.launch.title"),
+                        description: localization.loc("settings.launch.description")
                     ) {
                         HStack {
-                            Text(launchAtLogin ? "已开启" : "已关闭")
+                            Text(launchAtLogin
+                                ? localization.loc("settings.launch.enabled")
+                                : localization.loc("settings.launch.disabled"))
                                 .font(.system(size: 13))
                                 .foregroundColor(
                                     launchAtLogin
@@ -119,21 +139,33 @@ struct SettingsView: View {
                     // 存储信息
                     settingsSection(
                         icon: "info.circle",
-                        title: "存储信息",
+                        title: localization.loc("settings.storage.title"),
                         description: nil
                     ) {
                         VStack(alignment: .leading, spacing: 6) {
-                            InfoRow(label: "总记录数", value: "\(dataStore.items.count) 条")
-                            InfoRow(label: "文字记录", value: "\(dataStore.items.filter { $0.type == .text }.count) 条")
-                            InfoRow(label: "图片记录", value: "\(dataStore.items.filter { $0.type == .image }.count) 条")
-                            InfoRow(label: "置顶条目", value: "\(dataStore.items.filter { $0.isPinned }.count) 条")
+                            InfoRow(
+                                label: localization.loc("settings.storage.total"),
+                                value: localization.loc("settings.storage.unit", dataStore.items.count)
+                            )
+                            InfoRow(
+                                label: localization.loc("settings.storage.text"),
+                                value: localization.loc("settings.storage.unit", dataStore.items.filter { $0.type == .text }.count)
+                            )
+                            InfoRow(
+                                label: localization.loc("settings.storage.image"),
+                                value: localization.loc("settings.storage.unit", dataStore.items.filter { $0.type == .image }.count)
+                            )
+                            InfoRow(
+                                label: localization.loc("settings.storage.pinned"),
+                                value: localization.loc("settings.storage.unit", dataStore.items.filter { $0.isPinned }.count)
+                            )
                         }
                     }
                 }
                 .padding(.vertical, 20)
             }
         }
-        .frame(width: 420, height: 480)
+        .frame(width: 420, height: 520)
         .background(
             ZStack {
                 if colorScheme == .dark {

@@ -9,6 +9,7 @@ struct ClipboardCard: View {
     let onTogglePin: () -> Void
     let onDelete: () -> Void
 
+    @EnvironmentObject var localization: LocalizationService
     @Environment(\.colorScheme) private var colorScheme
     @State private var isHovered = false
 
@@ -22,7 +23,7 @@ struct ClipboardCard: View {
                         HStack(spacing: 4) {
                             Image(systemName: "pin.fill")
                                 .font(.system(size: 9))
-                            Text("置顶")
+                            Text(localization.loc("card.pinned"))
                                 .font(.system(size: 10, weight: .medium))
                         }
                         .foregroundColor(Color(hex: "5BA4C9").opacity(0.8))
@@ -143,7 +144,7 @@ struct ClipboardCard: View {
                     Image(systemName: "photo.badge.exclamationmark")
                         .font(.system(size: 13))
                         .foregroundColor(.secondary.opacity(0.5))
-                    Text("图片已丢失")
+                    Text(localization.loc("card.image_lost"))
                         .font(.caption)
                         .foregroundColor(.secondary.opacity(0.5))
                 }
@@ -176,7 +177,7 @@ struct ClipboardCard: View {
                 )
         }
         .buttonStyle(.plain)
-        .help(item.isPinned ? "取消置顶" : "置顶")
+        .help(item.isPinned ? localization.loc("card.unpin") : localization.loc("card.pin"))
     }
 
     private var deleteButton: some View {
@@ -201,6 +202,6 @@ struct ClipboardCard: View {
                 )
         }
         .buttonStyle(.plain)
-        .help("删除")
+        .help(localization.loc("card.delete"))
     }
 }

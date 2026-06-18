@@ -26,10 +26,10 @@ A macOS menu bar clipboard history manager — auto-records text and images you 
 ```bash
 # 1. 克隆仓库 / Clone
 git clone https://github.com/daniel30n44/ClipboardManager.git
-cd 历史粘贴板
+cd ClipboardManager
 
 # 2. Xcode 打开项目 / Open in Xcode
-open 历史粘贴板.xcodeproj
+open ClipboardManager.xcodeproj
 
 # 3. Cmd+R 编译运行 / Build & run
 ```
@@ -50,7 +50,7 @@ open 历史粘贴板.xcodeproj
 ## 项目结构 · Project Structure
 
 ```
-历史粘贴板/
+ClipboardManager/
 ├── Models/           # 数据模型 · Data models
 │   └── ClipboardItem.swift
 ├── Services/         # 业务逻辑 · Business logic
