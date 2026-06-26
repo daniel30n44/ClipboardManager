@@ -11,6 +11,8 @@ struct MainWindowView: View {
     @State private var showDeleteAlert = false
     @State private var itemToDelete: ClipboardItem?
 
+    // MARK: - 计算属性
+
     /// 三天前的零点
     private var threeDaysAgo: Date {
         guard let date = Calendar.current.date(byAdding: .day, value: -3, to: Date()) else {
@@ -19,59 +21,41 @@ struct MainWindowView: View {
         return Calendar.current.startOfDay(for: date)
     }
 
+    /// 去空白后的搜索文本（避免多处重复 trim）
+    private var trimmedSearchText: String {
+        searchText.trimmingCharacters(in: .whitespaces)
+    }
+
     /// 过滤：3 天内 + 搜索，排序：置顶优先 + 时间降序
     private var filteredItems: [ClipboardItem] {
-        // 仅保留 3 天内的记录
         let recent = dataStore.items.filter { $0.timestamp >= threeDaysAgo }
-
         let sorted = recent.sorted { a, b in
             if a.isPinned != b.isPinned { return a.isPinned && !b.isPinned }
             return a.timestamp > b.timestamp
         }
-
-        let trimmed = searchText.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return sorted }
-
-        return sorted.filter { item in
-            if item.type == .text {
-                return item.textContent?.localizedCaseInsensitiveContains(trimmed) ?? false
-            }
-            return false
+        guard !trimmedSearchText.isEmpty else { return sorted }
+        return sorted.filter {
+            $0.type == .text && ($0.textContent?.localizedCaseInsensitiveContains(trimmedSearchText) ?? false)
         }
     }
+
+    // MARK: - Body
 
     var body: some View {
         VStack(spacing: 0) {
             headerView
-            glassDivider
+            GlassDivider()
             searchBarView
-            glassDivider
-
-            if filteredItems.isEmpty {
-                emptyStateView
-            } else {
-                listView
-            }
+            GlassDivider()
+            contentArea
         }
         .frame(minWidth: 440, minHeight: 520)
         .background(
-            ZStack {
-                if colorScheme == .dark {
-                    LinearGradient(
-                        colors: [Color(hex: "2C2C30"), Color(hex: "26262A"), Color(hex: "28282C")],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                } else {
-                    LinearGradient(
-                        colors: [Color(hex: "F8FBFD"), Color(hex: "F2F8FB"), Color(hex: "F5F9FC")],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                }
-                Rectangle()
-                    .fill(.regularMaterial)
-            }
+            AppGradientBackground(
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing,
+                lightColors: [Color(hex: "F8FBFD"), Color(hex: "F2F8FB"), Color(hex: "F5F9FC")]
+            )
         )
         .alert(localization.loc("main.delete_alert.title"), isPresented: $showDeleteAlert) {
             Button(localization.loc("main.delete_alert.cancel"), role: .cancel) {}
@@ -89,18 +73,7 @@ struct MainWindowView: View {
 
     private var headerView: some View {
         HStack(spacing: 10) {
-            // 图标
-            ZStack {
-                Circle()
-                    .fill(colorScheme == .dark
-                        ? Color.white.opacity(0.12)
-                        : Color.white.opacity(0.65))
-                    .frame(width: 32, height: 32)
-                    .shadow(color: .black.opacity(colorScheme == .dark ? 0 : 0.04), radius: 5, y: 2)
-                Image(systemName: "clock.arrow.circlepath")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(Color(hex: "5BA4C9"))
-            }
+            IconCircle(systemName: "clock.arrow.circlepath", size: 32, iconSize: 14, shadowRadius: 5)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(localization.loc("main.title"))
@@ -113,52 +86,46 @@ struct MainWindowView: View {
 
             Spacer()
 
+            // 退出按钮
+            IconCircleButton(
+                systemName: "xmark",
+                size: 28, iconSize: 12,
+                foregroundColor: .secondary.opacity(0.7),
+                shadowRadius: 0
+            ) {
+                NSApplication.shared.terminate(nil)
+            }
+            .help("退出应用")
+
             // 设置按钮
             if #available(macOS 14.0, *) {
                 SettingsLink {
-                    ZStack {
-                        Circle()
-                            .fill(colorScheme == .dark
-                                ? Color.white.opacity(0.1)
-                                : Color.white.opacity(0.55))
-                            .frame(width: 28, height: 28)
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 13, weight: .light))
-                            .foregroundColor(.secondary.opacity(0.7))
-                    }
+                    IconCircle(
+                        systemName: "gearshape",
+                        size: 28, iconSize: 13, iconWeight: .light,
+                        foregroundColor: .secondary.opacity(0.7),
+                        lightOpacity: 0.55, darkOpacity: 0.1,
+                        shadowRadius: 0
+                    )
                 }
                 .buttonStyle(.plain)
             } else {
                 Button(action: {
                     NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                 }) {
-                    ZStack {
-                        Circle()
-                            .fill(colorScheme == .dark
-                                ? Color.white.opacity(0.1)
-                                : Color.white.opacity(0.55))
-                            .frame(width: 28, height: 28)
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 13, weight: .light))
-                            .foregroundColor(.secondary.opacity(0.7))
-                    }
+                    IconCircle(
+                        systemName: "gearshape",
+                        size: 28, iconSize: 13, iconWeight: .light,
+                        foregroundColor: .secondary.opacity(0.7),
+                        lightOpacity: 0.55, darkOpacity: 0.1,
+                        shadowRadius: 0
+                    )
                 }
                 .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
-    }
-
-    // MARK: - 玻璃分割线
-
-    private var glassDivider: some View {
-        Rectangle()
-            .fill(colorScheme == .dark
-                ? Color.white.opacity(0.08)
-                : Color.white.opacity(0.4))
-            .frame(height: 0.5)
-            .padding(.horizontal, 16)
     }
 
     // MARK: - 搜索栏
@@ -169,23 +136,30 @@ struct MainWindowView: View {
             .padding(.vertical, 10)
     }
 
+    // MARK: - 内容区
+
+    @ViewBuilder
+    private var contentArea: some View {
+        if filteredItems.isEmpty {
+            emptyStateView
+        } else {
+            listView
+        }
+    }
+
     // MARK: - 空状态
 
     private var emptyStateView: some View {
         VStack(spacing: 12) {
             Spacer()
 
-            ZStack {
-                Circle()
-                    .fill(colorScheme == .dark
-                        ? Color.white.opacity(0.08)
-                        : Color.white.opacity(0.5))
-                    .frame(width: 72, height: 72)
-                Image(systemName: searchText.isEmpty ? "tray" : "magnifyingglass")
-                    .font(.system(size: 28, weight: .light))
-                    .foregroundColor(.secondary.opacity(0.45))
-            }
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0 : 0.03), radius: 8, y: 4)
+            IconCircle(
+                systemName: searchText.isEmpty ? "tray" : "magnifyingglass",
+                size: 72, iconSize: 28, iconWeight: .light,
+                foregroundColor: .secondary.opacity(0.45),
+                lightOpacity: 0.5, darkOpacity: 0.08,
+                shadowRadius: 8, shadowY: 4
+            )
 
             Text(searchText.isEmpty
                 ? localization.loc("main.empty.title")
@@ -209,8 +183,8 @@ struct MainWindowView: View {
     private var listView: some View {
         ScrollView {
             LazyVStack(spacing: 10) {
-                // 结果提示
-                if !searchText.trimmingCharacters(in: .whitespaces).isEmpty {
+                // 搜索结果提示
+                if !trimmedSearchText.isEmpty {
                     HStack {
                         Text(localization.loc("main.search_results", filteredItems.count))
                             .font(.system(size: 11))

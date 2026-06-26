@@ -94,9 +94,6 @@ class LocalizationService: ObservableObject {
 
         // ---- Navigation ----
         "nav.home": "历史粘贴板",
-        "nav.all_records": "全部记录",
-        "nav.view_all": "查看全部",
-        "nav.back_home": "返回主页",
         "nav.search_placeholder": "搜索历史记录...",
         "nav.recent_3days": "· 3 天内",
 
@@ -157,9 +154,6 @@ class LocalizationService: ObservableObject {
 
         // ---- Navigation ----
         "nav.home": "Clipboard History",
-        "nav.all_records": "All Records",
-        "nav.view_all": "View All",
-        "nav.back_home": "Back to Home",
         "nav.search_placeholder": "Search history...",
         "nav.recent_3days": "· 3 days",
 
@@ -220,9 +214,6 @@ class LocalizationService: ObservableObject {
 
         // ---- Navigation ----
         "nav.home": "クリップボード履歴",
-        "nav.all_records": "全記録",
-        "nav.view_all": "すべて表示",
-        "nav.back_home": "ホームに戻る",
         "nav.search_placeholder": "履歴を検索...",
         "nav.recent_3days": "· 3日間",
 
@@ -283,9 +274,6 @@ class LocalizationService: ObservableObject {
 
         // ---- Navigation ----
         "nav.home": "클립보드 기록",
-        "nav.all_records": "전체 기록",
-        "nav.view_all": "전체 보기",
-        "nav.back_home": "홈으로",
         "nav.search_placeholder": "기록 검색...",
         "nav.recent_3days": "· 3일",
 
@@ -346,9 +334,6 @@ class LocalizationService: ObservableObject {
 
         // ---- Navigation ----
         "nav.home": "Historial del portapapeles",
-        "nav.all_records": "Todos los registros",
-        "nav.view_all": "Ver todo",
-        "nav.back_home": "Volver al inicio",
         "nav.search_placeholder": "Buscar historial...",
         "nav.recent_3days": "· 3 días",
 
@@ -409,9 +394,6 @@ class LocalizationService: ObservableObject {
 
         // ---- Navigation ----
         "nav.home": "Histórico da área de transferência",
-        "nav.all_records": "Todos os registros",
-        "nav.view_all": "Ver todos",
-        "nav.back_home": "Voltar ao início",
         "nav.search_placeholder": "Pesquisar histórico...",
         "nav.recent_3days": "· 3 dias",
 

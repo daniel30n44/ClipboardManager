@@ -3,9 +3,8 @@ import SwiftUI
 // MARK: - 面板视图类型
 
 enum PanelView: Equatable {
-    case home          // 主页：3 天内 + 搜索
-    case fullHistory   // 全历史记录
-    case settings      // 设置
+    case home
+    case settings
 }
 
 // MARK: - 菜单栏下拉面板 · Menu Bar Popup（原地切换版）
@@ -18,7 +17,7 @@ struct MenuBarView: View {
     @State private var searchText: String = ""
     @State private var currentPanel: PanelView = .home
 
-    /// 精确捕获当前视图所属的 NSWindow（不再靠 className 猜测）
+    /// 精确捕获当前视图所属的 NSWindow
     @State private var popupWindow: NSWindow? = nil
     /// 防抖：避免动画期间重复 resize
     @State private var pendingResize: DispatchWorkItem? = nil
@@ -35,9 +34,7 @@ struct MenuBarView: View {
         self.dataStore = dataStore
         _selectedDays = State(initialValue: dataStore.retentionDays)
         _launchAtLogin = State(
-            initialValue: FileManager.default.fileExists(
-                atPath: Self.launchAgentURL.path
-            )
+            initialValue: FileManager.default.fileExists(atPath: Self.launchAgentURL.path)
         )
     }
 
@@ -50,30 +47,29 @@ struct MenuBarView: View {
         return Calendar.current.startOfDay(for: date)
     }
 
-    private var filteredItems: [ClipboardItem] {
-        let base = currentPanel == .fullHistory
-            ? dataStore.items
-            : dataStore.items.filter { $0.timestamp >= threeDaysAgo }
+    /// 去空白后的搜索文本（避免多处重复 trim）
+    private var trimmedSearchText: String {
+        searchText.trimmingCharacters(in: .whitespaces)
+    }
 
-        let sorted = base.sorted { a, b in
+    /// 3 天内 + 搜索，排序：置顶优先 + 时间降序
+    private var filteredItems: [ClipboardItem] {
+        let recent = dataStore.items.filter { $0.timestamp >= threeDaysAgo }
+        let sorted = recent.sorted { a, b in
             if a.isPinned != b.isPinned { return a.isPinned && !b.isPinned }
             return a.timestamp > b.timestamp
         }
-
-        let trimmed = searchText.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return sorted }
-
+        guard !trimmedSearchText.isEmpty else { return sorted }
         return sorted.filter {
-            $0.type == .text && ($0.textContent?.localizedCaseInsensitiveContains(trimmed) ?? false)
+            $0.type == .text && ($0.textContent?.localizedCaseInsensitiveContains(trimmedSearchText) ?? false)
         }
     }
 
     /// 当前面板对应的窗口尺寸
     private var panelSize: (width: CGFloat, height: CGFloat) {
         switch currentPanel {
-        case .home:        return (410, 500)
-        case .fullHistory: return (410, 500)
-        case .settings:    return (420, 520)
+        case .home:     return (410, 500)
+        case .settings: return (420, 520)
         }
     }
 
@@ -81,7 +77,8 @@ struct MenuBarView: View {
 
     var body: some View {
         ZStack {
-            backgroundLayer
+            AppGradientBackground()
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 headerView
@@ -92,10 +89,7 @@ struct MenuBarView: View {
             .frame(width: panelSize.width)
         }
         .frame(width: panelSize.width, height: panelSize.height)
-        // 精准捕获 NSWindow（不再靠 className 猜）
-        .background(
-            WindowCaptureView(window: $popupWindow)
-        )
+        .background(WindowCaptureView(window: $popupWindow))
         .onChange(of: currentPanel) { _, _ in
             scheduleResize(width: panelSize.width, height: panelSize.height)
         }
@@ -115,80 +109,34 @@ struct MenuBarView: View {
         }
     }
 
-    // MARK: - 背景
-
-    private var backgroundLayer: some View {
-        ZStack {
-            if colorScheme == .dark {
-                // 深色模式：深邃半透明炭灰 + 强模糊，匹配 Apple Control Center 风格
-                LinearGradient(
-                    colors: [
-                        Color(hex: "2C2C30"),
-                        Color(hex: "26262A"),
-                        Color(hex: "28282C")
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                Rectangle()
-                    .fill(.regularMaterial)
-            } else {
-                // 浅色模式：更白更亮的活力渐变 + 强模糊
-                LinearGradient(
-                    colors: [
-                        Color(hex: "F8FBFD"),
-                        Color(hex: "F0F6FA"),
-                        Color(hex: "F4F8FB")
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                Rectangle()
-                    .fill(.regularMaterial)
-            }
-        }
-        .ignoresSafeArea()
-    }
-
-    // MARK: - 顶部标题栏（根据当前面板切换）
+    // MARK: - 顶部标题栏
 
     private var headerView: some View {
         HStack(spacing: 8) {
-            // 返回按钮（非主页时显示）
-            if currentPanel != .home {
+            // 返回按钮（设置页时显示）
+            if currentPanel == .settings {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.25)) {
                         currentPanel = .home
                     }
                 }) {
-                    ZStack {
-                        Circle()
-                            .fill(colorScheme == .dark
-                                ? Color.white.opacity(0.12)
-                                : Color.white.opacity(0.7))
-                            .frame(width: 26, height: 26)
-                            .shadow(color: .black.opacity(colorScheme == .dark ? 0 : 0.03), radius: 3, y: 1)
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(Color(hex: "5BA4C9"))
-                    }
+                    IconCircle(
+                        systemName: "chevron.left",
+                        size: 26, iconSize: 11, iconWeight: .semibold,
+                        lightOpacity: 0.7, darkOpacity: 0.12,
+                        shadowRadius: 3, shadowY: 1
+                    )
                 }
                 .buttonStyle(.plain)
             }
 
-            // 图标
-            ZStack {
-                Circle()
-                    .fill(colorScheme == .dark
-                        ? Color.white.opacity(0.12)
-                        : Color.white.opacity(0.75))
-                    .frame(width: 28, height: 28)
-                    .shadow(color: .black.opacity(colorScheme == .dark ? 0 : 0.04), radius: 4, y: 2)
-
-                Image(systemName: panelIcon)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(Color(hex: "5BA4C9"))
-            }
+            // 面板图标
+            IconCircle(
+                systemName: panelIcon,
+                size: 28, iconSize: 12,
+                lightOpacity: 0.75, darkOpacity: 0.12,
+                shadowRadius: 4, shadowY: 2
+            )
 
             Text(panelTitle)
                 .font(.system(size: 13, weight: .semibold))
@@ -202,30 +150,32 @@ struct MenuBarView: View {
 
             Spacer()
 
-            // 右侧按钮：主页显示齿轮
+            // 右侧按钮（仅主页显示）
             if currentPanel == .home {
-                Button(action: {
+                IconCircleButton(
+                    systemName: "xmark",
+                    size: 26, iconSize: 10, iconWeight: .semibold,
+                    foregroundColor: .secondary.opacity(0.65),
+                    lightOpacity: 0.6, darkOpacity: 0.1,
+                    shadowRadius: 3, shadowY: 1
+                ) {
+                    NSApplication.shared.terminate(nil)
+                }
+                .help("退出应用")
+
+                IconCircleButton(
+                    systemName: "gearshape",
+                    size: 26, iconSize: 11,
+                    foregroundColor: .secondary.opacity(0.65),
+                    lightOpacity: 0.6, darkOpacity: 0.1,
+                    shadowRadius: 3, shadowY: 1
+                ) {
                     selectedDays = dataStore.retentionDays
-                    launchAtLogin = FileManager.default.fileExists(
-                        atPath: Self.launchAgentURL.path
-                    )
+                    launchAtLogin = FileManager.default.fileExists(atPath: Self.launchAgentURL.path)
                     withAnimation(.easeInOut(duration: 0.25)) {
                         currentPanel = .settings
                     }
-                }) {
-                    ZStack {
-                        Circle()
-                            .fill(colorScheme == .dark
-                                ? Color.white.opacity(0.1)
-                                : Color.white.opacity(0.6))
-                            .frame(width: 26, height: 26)
-                            .shadow(color: .black.opacity(colorScheme == .dark ? 0 : 0.03), radius: 3, y: 1)
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.secondary.opacity(0.65))
-                    }
                 }
-                .buttonStyle(.plain)
                 .help(localization.loc("settings.title"))
             }
         }
@@ -235,21 +185,19 @@ struct MenuBarView: View {
 
     private var panelTitle: String {
         switch currentPanel {
-        case .home:        return localization.loc("nav.home")
-        case .fullHistory: return localization.loc("nav.all_records")
-        case .settings:    return localization.loc("settings.title")
+        case .home:     return localization.loc("nav.home")
+        case .settings: return localization.loc("settings.title")
         }
     }
 
     private var panelIcon: String {
         switch currentPanel {
-        case .home:        return "clipboard"
-        case .fullHistory: return "clock.arrow.circlepath"
-        case .settings:    return "gearshape"
+        case .home:     return "clipboard"
+        case .settings: return "gearshape"
         }
     }
 
-    // MARK: - 搜索栏（仅主页 + 全历史显示）
+    // MARK: - 搜索栏（仅主页显示）
 
     @ViewBuilder
     private var searchBarAndDivider: some View {
@@ -257,52 +205,17 @@ struct MenuBarView: View {
             SearchBar(text: $searchText, placeholder: localization.loc("nav.search_placeholder"))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-            glassDivider
+            GlassDivider(horizontalPadding: 12)
         }
     }
 
-    private var glassDivider: some View {
-        Rectangle()
-            .fill(colorScheme == .dark
-                ? Color.white.opacity(0.08)
-                : Color.white.opacity(0.4))
-            .frame(height: 0.5)
-            .padding(.horizontal, 12)
-    }
-
-    // MARK: - 内容区（根据面板切换）
-
-    private func pillBgColor(_ isSelected: Bool) -> Color {
-        if isSelected { return Color(hex: "5BA4C9").opacity(0.85) }
-        return colorScheme == .dark
-            ? Color.white.opacity(0.08)
-            : Color.white.opacity(0.55)
-    }
-
-    private func pillShadowColor(_ isSelected: Bool) -> Color {
-        if isSelected { return Color(hex: "5BA4C9").opacity(0.2) }
-        return colorScheme == .dark ? .clear : Color.black.opacity(0.02)
-    }
-
-    private func pillStrokeColor(_ isSelected: Bool) -> Color {
-        if isSelected { return Color.white.opacity(0.4) }
-        return colorScheme == .dark
-            ? Color.white.opacity(0.1)
-            : Color.white.opacity(0.5)
-    }
+    // MARK: - 内容区
 
     @ViewBuilder
     private var contentSwitch: some View {
         switch currentPanel {
         case .home:
-            itemListView(maxHeight: 420)
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal: .move(edge: .leading).combined(with: .opacity)
-                ))
-
-        case .fullHistory:
-            itemListView(maxHeight: 420)
+            homeListView
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing).combined(with: .opacity),
                     removal: .move(edge: .leading).combined(with: .opacity)
@@ -317,17 +230,17 @@ struct MenuBarView: View {
         }
     }
 
-    // MARK: - 列表视图（主页 / 全历史共用）
+    // MARK: - 主页列表
 
     @ViewBuilder
-    private func itemListView(maxHeight: CGFloat) -> some View {
+    private var homeListView: some View {
         if filteredItems.isEmpty {
             emptyStateView
-                .frame(maxHeight: maxHeight)
+                .frame(maxHeight: 420)
         } else {
             ScrollView {
                 LazyVStack(spacing: 8) {
-                    if !searchText.trimmingCharacters(in: .whitespaces).isEmpty {
+                    if !trimmedSearchText.isEmpty {
                         HStack {
                             Text(localization.loc("main.search_results", filteredItems.count))
                                 .font(.system(size: 11))
@@ -342,10 +255,7 @@ struct MenuBarView: View {
                             item: item,
                             onPaste: {
                                 PasteService.paste(item)
-                                NSApp.sendAction(
-                                    #selector(NSMenu.cancelTracking),
-                                    to: nil, from: nil
-                                )
+                                NSApp.sendAction(#selector(NSMenu.cancelTracking), to: nil, from: nil)
                             },
                             onTogglePin: {
                                 withAnimation { dataStore.togglePin(item) }
@@ -360,7 +270,7 @@ struct MenuBarView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 10)
             }
-            .frame(maxHeight: maxHeight)
+            .frame(maxHeight: 420)
         }
     }
 
@@ -369,17 +279,13 @@ struct MenuBarView: View {
     private var emptyStateView: some View {
         VStack(spacing: 10) {
             Spacer()
-            ZStack {
-                Circle()
-                    .fill(colorScheme == .dark
-                        ? Color.white.opacity(0.08)
-                        : Color.white.opacity(0.5))
-                    .frame(width: 56, height: 56)
-                Image(systemName: searchText.isEmpty ? "tray" : "magnifyingglass")
-                    .font(.system(size: 24, weight: .light))
-                    .foregroundColor(.secondary.opacity(0.45))
-            }
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0 : 0.03), radius: 6, y: 3)
+            IconCircle(
+                systemName: searchText.isEmpty ? "tray" : "magnifyingglass",
+                size: 56, iconSize: 24, iconWeight: .light,
+                foregroundColor: .secondary.opacity(0.45),
+                lightOpacity: 0.5, darkOpacity: 0.08,
+                shadowRadius: 6, shadowY: 3
+            )
 
             Text(searchText.isEmpty
                 ? localization.loc("empty.no_records")
@@ -404,7 +310,7 @@ struct MenuBarView: View {
     private var settingsContentView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                // 语言选择（Picker 形式，支持任意数量语言）
+                // 语言选择
                 settingsSection(
                     icon: "globe",
                     title: localization.loc("settings.language.title"),
@@ -419,7 +325,7 @@ struct MenuBarView: View {
                     .labelsHidden()
                 }
 
-                glassDivider
+                GlassDivider(horizontalPadding: 12)
 
                 // 保留天数
                 settingsSection(
@@ -429,42 +335,18 @@ struct MenuBarView: View {
                 ) {
                     HStack(spacing: 8) {
                         ForEach([1, 3, 5], id: \.self) { days in
-                            Button(action: {
+                            PillSelectButton(
+                                title: localization.loc("settings.retention.\(days)day"),
+                                isSelected: selectedDays == days
+                            ) {
                                 selectedDays = days
                                 dataStore.retentionDays = days
-                            }) {
-                                Text(localization.loc("settings.retention.\(days)day"))
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(
-                                        selectedDays == days
-                                            ? .white.opacity(0.95)
-                                            : Color(hex: "5BA4C9").opacity(0.8)
-                                    )
-                                    .padding(.horizontal, 22)
-                                    .padding(.vertical, 10)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .fill(pillBgColor(selectedDays == days))
-                                            .shadow(
-                                                color: pillShadowColor(selectedDays == days),
-                                                radius: selectedDays == days ? 6 : 3,
-                                                y: 2
-                                            )
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .stroke(
-                                                pillStrokeColor(selectedDays == days),
-                                                lineWidth: 0.8
-                                            )
-                                    )
                             }
-                            .buttonStyle(.plain)
                         }
                     }
                 }
 
-                glassDivider
+                GlassDivider(horizontalPadding: 12)
 
                 // 开机自启
                 settingsSection(
@@ -492,27 +374,19 @@ struct MenuBarView: View {
                     .padding(.horizontal, 4)
                 }
 
-                glassDivider
+                GlassDivider(horizontalPadding: 12)
 
                 // 存储信息
-                settingsSection(icon: "info.circle", title: localization.loc("settings.storage.title"), description: nil) {
+                settingsSection(
+                    icon: "info.circle",
+                    title: localization.loc("settings.storage.title"),
+                    description: nil
+                ) {
                     VStack(alignment: .leading, spacing: 6) {
-                        InfoRow(
-                            label: localization.loc("settings.storage.total"),
-                            value: localization.loc("settings.storage.unit", dataStore.items.count)
-                        )
-                        InfoRow(
-                            label: localization.loc("settings.storage.text"),
-                            value: localization.loc("settings.storage.unit", dataStore.items.filter { $0.type == .text }.count)
-                        )
-                        InfoRow(
-                            label: localization.loc("settings.storage.image"),
-                            value: localization.loc("settings.storage.unit", dataStore.items.filter { $0.type == .image }.count)
-                        )
-                        InfoRow(
-                            label: localization.loc("settings.storage.pinned"),
-                            value: localization.loc("settings.storage.unit", dataStore.items.filter { $0.isPinned }.count)
-                        )
+                        InfoRow(label: localization.loc("settings.storage.total"),  value: localization.loc("settings.storage.unit", dataStore.items.count))
+                        InfoRow(label: localization.loc("settings.storage.text"),   value: localization.loc("settings.storage.unit", dataStore.items.filter { $0.type == .text }.count))
+                        InfoRow(label: localization.loc("settings.storage.image"),  value: localization.loc("settings.storage.unit", dataStore.items.filter { $0.type == .image }.count))
+                        InfoRow(label: localization.loc("settings.storage.pinned"), value: localization.loc("settings.storage.unit", dataStore.items.filter { $0.isPinned }.count))
                     }
                 }
             }
@@ -556,35 +430,10 @@ struct MenuBarView: View {
                 Text(localization.loc("footer.retention", dataStore.retentionDays))
                     .font(.system(size: 10))
                     .foregroundColor(.secondary.opacity(0.6))
-
                 Spacer()
-
-                if !searchText.trimmingCharacters(in: .whitespaces).isEmpty {
-                    Text(localization.loc("footer.total", dataStore.items.count))
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary.opacity(0.6))
-                } else {
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.25)) {
-                            currentPanel = currentPanel == .fullHistory
-                                ? .home
-                                : .fullHistory
-                        }
-                    }) {
-                        Text(currentPanel == .fullHistory
-                            ? localization.loc("nav.back_home")
-                            : localization.loc("nav.view_all"))
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(Color(hex: "5BA4C9").opacity(0.8))
-                    }
-                    .buttonStyle(.plain)
-
-                    Spacer().frame(width: 8)
-
-                    Text(localization.loc("footer.total", dataStore.items.count))
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary.opacity(0.6))
-                }
+                Text(localization.loc("footer.total", dataStore.items.count))
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary.opacity(0.6))
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
@@ -596,10 +445,7 @@ struct MenuBarView: View {
 
     // MARK: - 动态调整窗口尺寸（防抖 + 中心锚点）
 
-    /// 以窗口顶部中心为锚点调整尺寸（MenuBarExtra 的 popover 居中于菜单栏图标下方），
-    /// 避免在屏幕边缘时窗口跳到另一侧。
     private func scheduleResize(width: CGFloat, height: CGFloat) {
-        // 取消上一次待执行的 resize，防止动画堆积
         pendingResize?.cancel()
 
         let workItem = DispatchWorkItem { [self] in
@@ -607,7 +453,6 @@ struct MenuBarView: View {
         }
         pendingResize = workItem
 
-        // 首次 onAppear 要给窗口布局留够时间
         let delay: Double = (popupWindow == nil) ? 0.15 : 0.03
         DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
     }
@@ -616,12 +461,9 @@ struct MenuBarView: View {
         guard let window = popupWindow else { return }
 
         let current = window.frame
-
-        // 尺寸没变就跳过，避免无谓的动画抖动
         guard abs(current.width - width) > 1.5 ||
               abs(current.height - height) > 1.5 else { return }
 
-        // 锚点：窗口顶部中心固定（菜单栏图标在正上方），仅向下/两侧扩展
         let centerX = current.midX
         let topY = current.maxY
 
@@ -648,9 +490,7 @@ struct MenuBarView: View {
         } else {
             removeLaunchAgent()
         }
-        launchAtLogin = FileManager.default.fileExists(
-            atPath: Self.launchAgentURL.path
-        )
+        launchAtLogin = FileManager.default.fileExists(atPath: Self.launchAgentURL.path)
     }
 
     private func createLaunchAgent() {
@@ -676,11 +516,7 @@ struct MenuBarView: View {
         </plist>
         """
         do {
-            try plistContent.write(
-                to: Self.launchAgentURL,
-                atomically: true,
-                encoding: .utf8
-            )
+            try plistContent.write(to: Self.launchAgentURL, atomically: true, encoding: .utf8)
             let task = Process()
             task.launchPath = "/bin/launchctl"
             task.arguments = ["load", Self.launchAgentURL.path]
@@ -728,31 +564,23 @@ struct MenuBarItemRow: View {
     }
 
     private var cardShadow: Color {
-        colorScheme == .dark
-            ? Color.clear
-            : Color.black.opacity(isHovered ? 0.06 : 0.025)
+        colorScheme == .dark ? .clear : Color.black.opacity(isHovered ? 0.06 : 0.025)
     }
 
-    private func btnBg(_ highlight: Bool = false) -> Color {
+    private func actionBtnBg(_ highlight: Bool = false) -> Color {
         colorScheme == .dark
             ? Color.white.opacity(highlight ? 0.12 : 0.1)
             : Color.white.opacity(highlight ? 0.65 : 0.55)
     }
 
-    private func btnStroke(_ highlight: Bool = false) -> Color {
+    private func actionBtnStroke(_ highlight: Bool = false) -> Color {
         colorScheme == .dark
             ? Color.white.opacity(highlight ? 0.1 : 0.08)
             : Color.white.opacity(0.5)
     }
 
-    private var btnShadow: Color {
-        colorScheme == .dark ? Color.clear : Color.black.opacity(0.03)
-    }
-
-    private var placeholderBg: Color {
-        colorScheme == .dark
-            ? Color.white.opacity(0.08)
-            : Color.white.opacity(0.55)
+    private var actionBtnShadow: Color {
+        colorScheme == .dark ? .clear : Color.black.opacity(0.03)
     }
 
     var body: some View {
@@ -775,57 +603,31 @@ struct MenuBarItemRow: View {
 
                 Spacer(minLength: 0)
 
-                // 右侧操作区：固定宽度，仅透明度动画，避免文字换行
+                // 右侧操作区：固定宽度，仅透明度动画
                 HStack(spacing: 4) {
-                    // 置顶标记（始终占位）
+                    // 置顶标记
                     Image(systemName: "pin.fill")
                         .font(.system(size: 9))
                         .foregroundColor(Color(hex: "5BA4C9").opacity(0.7))
                         .opacity(item.isPinned ? 1 : 0)
 
-                    // 置顶按钮（始终占位，仅淡入淡出）
-                    Button(action: onTogglePin) {
-                        Image(systemName: item.isPinned ? "pin.slash" : "pin")
-                            .font(.system(size: 10, weight: .light))
-                            .foregroundColor(.secondary.opacity(0.65))
-                            .frame(width: 24, height: 24)
-                            .background(
-                                Circle()
-                                    .fill(btnBg(true))
-                                    .shadow(color: btnShadow, radius: 2, y: 1)
-                            )
-                            .overlay(
-                                Circle()
-                                    .stroke(btnStroke(true), lineWidth: 0.5)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .opacity(isHovered ? 1 : 0)
-                    .help(item.isPinned
-                        ? localization.loc("card.unpin")
-                        : localization.loc("card.pin"))
+                    // 置顶/取消置顶按钮
+                    actionButton(
+                        icon: item.isPinned ? "pin.slash" : "pin",
+                        highlight: true,
+                        help: item.isPinned ? localization.loc("card.unpin") : localization.loc("card.pin"),
+                        action: onTogglePin
+                    )
 
-                    // 删除按钮（始终占位，仅淡入淡出）
-                    Button(action: onDelete) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 10, weight: .light))
-                            .foregroundColor(.secondary.opacity(0.55))
-                            .frame(width: 24, height: 24)
-                            .background(
-                                Circle()
-                                    .fill(btnBg(false))
-                                    .shadow(color: btnShadow, radius: 2, y: 1)
-                            )
-                            .overlay(
-                                Circle()
-                                    .stroke(btnStroke(false), lineWidth: 0.5)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .opacity(isHovered ? 1 : 0)
-                    .help(localization.loc("card.delete"))
+                    // 删除按钮
+                    actionButton(
+                        icon: "trash",
+                        highlight: false,
+                        help: localization.loc("card.delete"),
+                        action: onDelete
+                    )
 
-                    // 粘贴提示箭头（始终占位）
+                    // 粘贴提示箭头
                     Image(systemName: "arrow.turn.down.left")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundColor(.secondary.opacity(0.55))
@@ -843,11 +645,7 @@ struct MenuBarItemRow: View {
                 RoundedRectangle(cornerRadius: 13)
                     .stroke(cardStroke, lineWidth: isHovered ? 1.2 : 0.8)
             )
-            .shadow(
-                color: cardShadow,
-                radius: isHovered ? 8 : 4,
-                y: isHovered ? 3 : 1
-            )
+            .shadow(color: cardShadow, radius: isHovered ? 8 : 4, y: isHovered ? 3 : 1)
         }
         .buttonStyle(.plain)
         .onHover { hovering in
@@ -855,6 +653,29 @@ struct MenuBarItemRow: View {
                 isHovered = hovering
             }
         }
+    }
+
+    // MARK: - 操作按钮（悬停时淡入）
+
+    private func actionButton(icon: String, highlight: Bool, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .light))
+                .foregroundColor(.secondary.opacity(highlight ? 0.65 : 0.55))
+                .frame(width: 24, height: 24)
+                .background(
+                    Circle()
+                        .fill(actionBtnBg(highlight))
+                        .shadow(color: actionBtnShadow, radius: 2, y: 1)
+                )
+                .overlay(
+                    Circle()
+                        .stroke(actionBtnStroke(highlight), lineWidth: 0.5)
+                )
+        }
+        .buttonStyle(.plain)
+        .opacity(isHovered ? 1 : 0)
+        .help(help)
     }
 
     // MARK: - 类型图标
@@ -888,28 +709,24 @@ struct MenuBarItemRow: View {
     }
 
     private func iconPlaceholder(systemName: String) -> some View {
-        RoundedRectangle(cornerRadius: 9)
-            .fill(placeholderBg)
-            .frame(width: 36, height: 36)
-            .overlay(
-                Image(systemName: systemName)
-                    .font(.system(size: 14, weight: .light))
-                    .foregroundColor(Color(hex: "7EC8E3").opacity(0.7))
-            )
-            .shadow(color: btnShadow, radius: 2, y: 1)
+        IconCircle(
+            systemName: systemName,
+            size: 36, iconSize: 14, iconWeight: .light,
+            foregroundColor: Color(hex: "7EC8E3").opacity(0.7),
+            lightOpacity: 0.55, darkOpacity: 0.08,
+            shadowRadius: 2, shadowY: 1
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 9))
     }
 }
 
 // MARK: - 窗口捕获器（精准定位 MenuBarExtra 的 NSWindow）
 
-/// 通过 NSViewRepresentable 从视图层级中精准拿到所在窗口，
-/// 不再靠 `NSApp.windows` + className 硬编码猜测。
 struct WindowCaptureView: NSViewRepresentable {
     @Binding var window: NSWindow?
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
-        // 视图加入 window 后回调
         DispatchQueue.main.async {
             self.window = view.window
         }
@@ -917,7 +734,6 @@ struct WindowCaptureView: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-        // 窗口没变就不更新
         if window == nil, let w = nsView.window {
             DispatchQueue.main.async {
                 self.window = w
